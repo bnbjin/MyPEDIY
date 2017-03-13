@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="说明文档">
+      <UniqueIdentifier>{dc07c9b5-2395-47f7-ab1e-3ae4c5c4fe64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pattern">
+      <UniqueIdentifier>{fc80b731-a930-4a6a-98e4-06e02102eebc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pattern\inc">
+      <UniqueIdentifier>{0d7c2a54-fd04-4652-b1ea-0d0dd498d12c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pattern\src">
+      <UniqueIdentifier>{4ee10f05-3684-449c-a8c4-7cb04da1edac}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="singleton_t.cpp">
+      <Filter>Pattern\src</Filter>
+    </ClCompile>
+    <ClCompile Include="singleton.cpp">
+      <Filter>Pattern\src</Filter>
+    </ClCompile>
+    <ClCompile Include="winmain.h">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="config.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="error.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="extradata.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="gloabalvalue.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="import.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="packing.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pe_utilities.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pediy.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="relocation.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="section.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="utilities.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="winmain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="shell.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="singleton_t.h">
+      <Filter>Pattern\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="singleton.h">
+      <Filter>Pattern\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="error.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="extradata.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="globalvalue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="import.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="packing.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pe_utilities.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pediy.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="relocation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="section.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utilities.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="shell.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MyPEDIY.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\shell512.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="README.txt">
+      <Filter>说明文档</Filter>
+    </Text>
+    <Text Include="plan.txt">
+      <Filter>说明文档</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shell.asm">
+      <Filter>源文件</Filter>
+    </None>
+  </ItemGroup>
+</Project>
