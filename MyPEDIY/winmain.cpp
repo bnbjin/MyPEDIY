@@ -69,8 +69,8 @@ INT_PTR CALLBACK SubCTLDlgProc(
 		EnableWindow(GetDlgItem(hDlg, IDC_PROT_BUTTON), FALSE);
 
 #ifdef __PARADOX_DEBUG__
-		WinExec("C:\\Users\\Administrator\\Desktop\\deltest.bat", SW_HIDE);
-
+		DeleteFile(TEXT("C:\\Users\\Administrator\\Desktop\\test.exe"));
+		MoveFile(TEXT("C:\\Users\\Administrator\\Desktop\\test.exe.bak"), TEXT("C:\\Users\\Administrator\\Desktop\\test.exe"));
 		lstrcpy(szFilePath, TEXT("C:\\Users\\Administrator\\Desktop\\test.exe"));
 		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProtTheFile, (LPVOID)szFilePath, NORMAL_PRIORITY_CLASS, &ProtFileThreadID);
 		WaitForSingleObject(hThread, INFINITE);

@@ -8,6 +8,7 @@
 #include "section.h"
 #include "extradata.h"
 #include "packing.h"
+#include "shell.h"
 
 
 /*
@@ -18,8 +19,9 @@
 int ProtTheFile(TCHAR *szFilePath)
 {
 	HANDLE hFile;
-	void* pImageBase = NULL;
-	void* pExtraData = NULL;
+	void* pImageBase = 0;
+	void* pExtraData = 0;
+	void* pShellSection = 0;
 	unsigned long ulExtraDataSize = 0;
 
 	try
@@ -84,13 +86,21 @@ int ProtTheFile(TCHAR *szFilePath)
 		}
 		
 		/*  添加shell段  */
-		// ImployShell();
+		ImployShell(pImageBase, &pShellSection);
 
 		/*  压缩区块数据  */
 		// PackFile(hFile, pImageBase);
 	
 
+		/*  融合内存块 */
+		void* pNewImage = MergeMemBlock(pImageBase, pShellSection);
+		delete []pImageBase;
+		pImageBase = pNewImage;
+		pNewImage = 0;
+
+
 		/*  把堆中数据写入文件  */
+		// TODO : mergememblock
 		WriteHeapToFile(hFile, pImageBase);
 
 
@@ -101,10 +111,11 @@ int ProtTheFile(TCHAR *szFilePath)
 		}
 
 		/*  加密完成,清理  */
-		delete []pImageBase;
+		if (0 != pImageBase) delete []pImageBase;
+		if (0 != pShellSection) delete []pShellSection;
 		//if (ISMUTATEIMPORT)	delete []m_pImportTable;
 		//if (ISPACKRES)	delete []pMapOfPackRes;
-		if (ulExtraDataSize > 0)	delete []pExtraData;
+		if (0 != pExtraData)	delete []pExtraData;
 
 		CloseHandle(hFile);
 
@@ -298,7 +309,7 @@ int ReadFileToHeap(TCHAR *szFilePath, HANDLE *_hfile, void **_pimagebase)
 	if (pimagebase == NULL)
 	{
 		// log : 错误!内存不足！
-		return ERR_UNKNOWN;
+		return ERR_OUTOFMEM;
 	}
 	*_pimagebase = pimagebase;
 

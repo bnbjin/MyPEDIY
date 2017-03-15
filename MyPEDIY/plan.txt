@@ -1,5 +1,6 @@
 
 Module:
 
-shell:	1.添加新区块，放到所有区块的最前面，把所有区块往后移动
-		2.写入shell数据到新区块
+shell:	1.添加新区块
+		2.把shell写入分配的内存块中（先写入，后填写数据）
+		3.修复PE头,使目标文件以shell为入口点,AddressOfEntryPoint, BaseOfCode

@@ -2,6 +2,7 @@
 #define __PE_UTILITIES_H__
 
 #include <windows.h>
+#include <vector>
 
 /*
 	Description:	取整对齐函数
@@ -61,6 +62,18 @@ unsigned int GetDosHeaderSize(void* _pImageBase);
 	Description:	获取NT头大小
 */
 unsigned int GetNTHeaderSize(void* _pImageBase);
+
+
+/*
+	Description:	在区块表最后添加新区快,new申请新区快内存，需要调用者delete
+*/
+unsigned int CreateNewSection(void* _pImageBase, const unsigned long _secsize, void **_ppNewSection);
+
+
+/*
+	Description:	把输入的内存块融合到一起
+*/
+void* MergeMemBlock(void* _pImageBase, void* _pShellSection);
 
 
 #endif //__PE_UTILITIES_H__

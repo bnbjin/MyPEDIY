@@ -25,6 +25,9 @@
     <Filter Include="Pattern\src">
       <UniqueIdentifier>{4ee10f05-3684-449c-a8c4-7cb04da1edac}</UniqueIdentifier>
     </Filter>
+    <Filter Include="内存池">
+      <UniqueIdentifier>{77760801-19a1-43b9-a05b-b6fea124ca62}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="singleton_t.cpp">
@@ -75,6 +78,9 @@
     <ClCompile Include="shell.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MemoryPool.cpp">
+      <Filter>内存池</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="singleton_t.h">
@@ -122,6 +128,9 @@
     <ClInclude Include="shell.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="MemoryPool.h">
+      <Filter>内存池</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="MyPEDIY.rc">
@@ -140,10 +149,16 @@
     <Text Include="plan.txt">
       <Filter>说明文档</Filter>
     </Text>
+    <Text Include="bugs.txt">
+      <Filter>说明文档</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shell.asm">
+    <CustomBuild Include="ASMshell.bak.asm">
       <Filter>源文件</Filter>
-    </None>
+    </CustomBuild>
+    <CustomBuild Include="ASMshell.asm">
+      <Filter>源文件</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

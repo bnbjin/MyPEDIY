@@ -47,7 +47,7 @@ PIMAGE_SECTION_HEADER getLastSecHeader(const void* _pImageBase)
 {
 	PIMAGE_SECTION_HEADER pSecHeader = getSecHeader(_pImageBase);
 
-	while (0 == pSecHeader->PointerToRawData && 0 == pSecHeader->SizeOfRawData)
+	while (0 != pSecHeader->PointerToRawData && 0 != pSecHeader->SizeOfRawData)
 	{
 		pSecHeader++;
 	}
@@ -164,5 +164,80 @@ unsigned int GetNTHeaderSize(void* _pImageBase)
 */
 unsigned int GetSectionTableSize(void* _pImageBase)
 {
-	return 0;
+	// TODO
+	return ERR_SUCCESS;
+}
+
+
+/*
+	Description:	在区块表最后添加新区快,new申请新区快内存，需要调用者delete
+*/
+unsigned int CreateNewSection(void* _pImageBase, const unsigned long _secsize, void **_ppNewSection)
+{
+	PIMAGE_NT_HEADERS pNTHeader = getNTHeader(_pImageBase);
+	PIMAGE_SECTION_HEADER pNewSecHeader = getLastSecHeader(_pImageBase) + 1;
+	PIMAGE_SECTION_HEADER pLastSecHeader = getLastSecHeader(_pImageBase);
+
+	/*  把所有区块往后移动  */
+	/* 从最后一个区块开始，向后一个区块移动*/
+	/*
+	
+	for (int i = pNTHeader->FileHeader.NumberOfSections; i > 0; i--, pLastSecHeader--)
+	{
+		memcpy(pLastSecHeader + 1, pLastSecHeader, sizeof(IMAGE_SECTION_HEADER));
+	}*/
+
+
+	/*  填写新区块信息  */
+	memset(pNewSecHeader, 0, sizeof(IMAGE_SECTION_HEADER));
+	/* Name, VirtualAddress, VirtualSize, RawAddress, RawSize, Characteristics */
+	char secname[8] = { ".shell" };
+	memcpy(pNewSecHeader->Name, ".shell", 8);
+	pNewSecHeader->VirtualAddress = pLastSecHeader->VirtualAddress + AlignSize(pLastSecHeader->Misc.VirtualSize, pNTHeader->OptionalHeader.SectionAlignment);
+	pNewSecHeader->Misc.VirtualSize = AlignSize(_secsize, pNTHeader->OptionalHeader.SectionAlignment);
+	pNewSecHeader->PointerToRawData = pLastSecHeader->PointerToRawData + AlignSize(pLastSecHeader->SizeOfRawData, pNTHeader->OptionalHeader.FileAlignment);
+	pNewSecHeader->SizeOfRawData = AlignSize(_secsize, pNTHeader->OptionalHeader.FileAlignment);
+	pNewSecHeader->Characteristics = 0xE0000020;
+
+
+	/*  分配新区块内存  */
+	unsigned long ulNewSecSize = AlignSize(_secsize, pNTHeader->OptionalHeader.SectionAlignment);
+	*_ppNewSection = new char[ulNewSecSize];
+	memset(*_ppNewSection, 0, ulNewSecSize);
+
+
+	/*  修复PE头相关项  */
+	/* SizeOfImage, NumberOfSections, SizeOfCode */
+	pNTHeader->OptionalHeader.SizeOfImage = AlignSize(pNTHeader->OptionalHeader.SizeOfImage + ulNewSecSize, pNTHeader->OptionalHeader.SectionAlignment);
+	pNTHeader->FileHeader.NumberOfSections++;
+	pNTHeader->OptionalHeader.SizeOfCode += ulNewSecSize;
+
+
+	return ERR_SUCCESS;
+}
+
+
+/*
+	Description:	把输入的内存块融合到一起
+*/
+void* MergeMemBlock(void* _pImageBase, void* _pShellSection)
+{
+	PIMAGE_NT_HEADERS pNTHeader = getNTHeader(_pImageBase);
+	PIMAGE_SECTION_HEADER pShellSecHeader = getLastSecHeader(_pImageBase);
+	unsigned long ulNewImageSize = pNTHeader->OptionalHeader.SizeOfImage;
+	unsigned long ulOriginalImageSize = ulNewImageSize - AlignSize(pShellSecHeader->Misc.VirtualSize, pNTHeader->OptionalHeader.SectionAlignment);
+	unsigned long ulShellSize = pShellSecHeader->SizeOfRawData;
+
+	// 分配新映像的内存空间
+	void* pNewMemBlock = new unsigned char[ulNewImageSize];
+	memset(pNewMemBlock, 0, ulNewImageSize);
+
+	// 复制原ImageBase
+	memcpy(pNewMemBlock, _pImageBase, ulOriginalImageSize);
+
+	// 复制ShellSection
+	void* pNewShellPosition = (void*)((unsigned long)pNewMemBlock + ulOriginalImageSize);
+	memcpy(pNewShellPosition, _pShellSection, ulShellSize);
+
+	return pNewMemBlock;
 }
