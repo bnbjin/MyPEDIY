@@ -9,33 +9,36 @@ INCLUDE c:\masm32\include\windows.inc
 INCLUDE ASMshell.inc 
 
 
-ASSUME 	fs:nothing
-
 .code
 Label_Shell_Start	LABEL	DWORD
 Label_Induction_Start	LABEL	DWORD
+
 _EntryPoint:
 	pushad
 	call __next0
 
-Label_Mutate_Import_Start 	LABEL	DWORD
+Label_Induction_Import_Start 	LABEL	DWORD
+	
 	ImportTable		MY_IMAGE_IMPORT_DESCRIPTOR <<GPAAddr - Label_Shell_Start>, 0, 0, (DLLName - Label_Shell_Start), (GPAAddr - Label_Shell_Start)>
 	DumbDescriptor	MY_IMAGE_IMPORT_DESCRIPTOR <<0>, 0, 0, 0, 0>       
-	; DLLName
-	DLLName	DB	'KERNEL32.dll'
-			DB	0,0
+
+Label_Induction_Import_End	LABEL	DWORD	
+	
 	; IAT
 	; 三个函数次序不可改变
 	GPAAddr	DD	GPAThunk - Label_Shell_Start	; GetProcAddress Address
 	GMHAddr	DD	GMHThunk - Label_Shell_Start	; GetModuleHandle Address
 	LLAAddr	DD	LLAThunk - Label_Shell_Start	; LoadLibraryA Address
 			DD  0
+
+	; DLLName
+	DLLName	DB	'KERNEL32.dll', 0, 0
+	
 	; Thunks
 	GPAThunk	MY_IMAGE_IMPORT_THUNK	<0, 'GetProcAddress'>
 	GMHThunk	MY_IMAGE_IMPORT_THUNK	<0, 'GetModuleHandleA'>
 	LLAThunk	MY_IMAGE_IMPORT_THUNK	<0, 'LoadLibraryA'>
-Label_Mutate_Import_End	LABEL	DWORD
-	
+
 	; todo: mutate reloc data
 Label_Induction_Data_Start	LABEL	DWORD
 	InductionData INDUCTION_DATA <>
@@ -44,7 +47,7 @@ Label_Induction_Data_End	LABEL	DWORD
 __next0:	
 	; 获取程序入口点 ebp = 入口点地址, 为后面提供寻址作用
 	pop 	ebp
-	sub		ebp, (Label_Mutate_Import_Start - Label_Induction_Start)
+	sub		ebp, (Label_Induction_Import_Start - Label_Induction_Start)
 	
 	; *  以下代码是处理DLL时起作用  *
 	; 当DLL再次进入时，第二段shell已经解密，因此可以直接进入
@@ -97,7 +100,7 @@ ENDIF	; IFDEF __ASMSHELL_DEBUG__
 IFDEF __ASMSHELL_DEBUG__
 	; *  复制第二段SHELL到申请的内存空间中  *
 	mov 	ecx, dword ptr [ebp + (InductionData.nLuanchPackSize - Label_Induction_Start)] 
-	lea 	esi, Label_Luanch_Start
+	lea 	esi, dword ptr [ebp + (Label_Luanch_Start - Label_Shell_Start)]
 	mov 	edi, eax
 MoveLuanchToAllocation:
 	mov 	al, byte ptr [esi]
@@ -217,7 +220,9 @@ _Return_OEP:
 	ret
 
 Lable_Luanch_Data_Start	LABEL	DWORD
+
 LuanchData	LUANCH_DATA	<>
+
 Lable_Luanch_Data_End	LABEL 	DWORD
 
 
@@ -448,4 +453,4 @@ Label_Luanch_End	LABEL 	DWORD
 Label_Shell_End	LABEL	DWORD
 
 
-END _EntryPoint
+END
