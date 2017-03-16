@@ -45,7 +45,7 @@ INT_PTR CALLBACK AboutAuthorDlgProc(
 
 
 /*
-Description:	主对话框消息回调函数
+	Description:	主对话框消息回调函数
 */
 INT_PTR CALLBACK MainDlg(
 	_In_ HWND hDlg,
