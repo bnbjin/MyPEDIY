@@ -3,4 +3,25 @@ Module:
 
 shell:	1.添加新区块
 		2.把shell写入分配的内存块中（先写入，后填写数据）
-		3.修复PE头,使目标文件以shell为入口点,AddressOfEntryPoint, BaseOfCode
+		3.修复SHELL的自建输入表
+		4.填写shell相关数据字段
+		5.修复PE头,AddressOfEntryPoint, BaseOfCode,  DataDirectory[IMPORT,IAT]
+
+shell.asm: 
+		第一段shell Induction:	包含自建ImportTable,相关数据
+		1.获取自身区块VA，以便寻址
+		2.获取映像基址
+		3.VirtualAlloc分配内存空间，用来存放解压缩后的第二段shell
+		*4.解压缩第二段shell到分配的内存空间
+		5.复制相关数据到第二段shell:三个基本函数地址，ap_depack_asm地址, VirtualAlloc, PresentImageBase
+		6.跳转到第二段shell Luanch
+		第二段shell Luanch: 包含相关数据
+		1.获取第二段shell VA
+		2.如果是DLL则直接跳转到OEP
+		3.GetModuleHandle获取模块基址
+		4.获取VirtualFree函数地址
+		*5.解压缩各区块数据
+		*6.恢复原输入表
+		*7.修正重定位数据
+		*8.anti debug
+		9.跳转到OEP
