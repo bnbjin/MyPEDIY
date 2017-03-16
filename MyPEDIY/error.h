@@ -5,4 +5,5 @@ extern const int ERR_SUCCESS;
 extern const int ERR_UNKNOWN;
 extern const int ERR_INVALIDFILE;
 extern const int ERR_OUTOFMEM;
+
 #endif // __ERROR_H__
