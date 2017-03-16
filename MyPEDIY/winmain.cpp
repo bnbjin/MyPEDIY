@@ -25,7 +25,7 @@
 /*    如果没有把masm安装在c盘，则要作相应的修改。                               */
 /********************************************************************************/
 
-#include <windows.h> 
+#include <windows.h>
 #include <commctrl.h>
 #include <process.h> 
 #include "resource.h"
@@ -75,9 +75,7 @@ INT_PTR CALLBACK SubCTLDlgProc(
 		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProtTheFile, (LPVOID)szFilePath, NORMAL_PRIORITY_CLASS, &ProtFileThreadID);
 		WaitForSingleObject(hThread, INFINITE);
 		CloseHandle(hThread);
-
 		WinExec("C:\\Users\\Administrator\\Desktop\\test.exe", SW_NORMAL);
-
 		SendMessage(GetParent(GetParent(hDlg)), WM_CLOSE, 0, 0);
 #endif 
 
