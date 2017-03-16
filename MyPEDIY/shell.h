@@ -11,15 +11,22 @@ extern "C"	DWORD	Label_Induction_Start;
 extern "C"  DWORD   Label_Induction_End;
 extern "C"	DWORD	Label_Induction_Data_Start;
 extern "C"	DWORD	Label_Induction_Data_End;
-extern "C"  DWORD	Label_Mutate_Import_Start;
-extern "C"	DWORD	Label_Mutate_Import_End;
+extern "C"  DWORD	Label_Induction_Import_Start;
+extern "C"	DWORD	Label_Induction_Import_End;
 extern "C"	DWORD	Label_Luanch_Start;
 extern "C"	DWORD	Label_Luanch_End;
 extern "C"	DWORD	Lable_Luanch_Data_Start;
 extern "C"	DWORD	Lable_Luanch_Data_End;
 
+
 #pragma pack(push)
 #pragma pack(1)
+struct Induction_Import
+{
+	IMAGE_IMPORT_DESCRIPTOR	ImpD[2];
+	IMAGE_THUNK_DATA Thunk[4];
+};
+
 struct Induction_Data 
 {
 	DWORD	nShellStep;
@@ -42,6 +49,7 @@ struct Luanch_Data
 };
 #pragma pack(pop)
 
+typedef Induction_Import* UNALIGNED PInduction_Import;
 typedef Induction_Data* UNALIGNED PInduction_Data;
 typedef Luanch_Data* UNALIGNED PLuanch_Data;
 
