@@ -2,14 +2,14 @@ IFNDEF __ASMSHELL_INC__
 __ASMSHELL_INC__	equ	<1>
 __ASMSHELL_DEBUG__	equ <1>
 
-PUBLIC  C   Label_Shell_Start
+PUBLIC  C	Label_Shell_Start
 PUBLIC  C   Label_Shell_End
 PUBLIC	C	Label_Induction_Start
 PUBLIC	C	Label_Induction_End
 PUBLIC	C	Label_Induction_Data_Start
 PUBLIC  C   Label_Induction_Data_End
-PUBLIC  C 	Label_Mutate_Import_Start
-PUBLIC  C 	Label_Mutate_Import_End
+PUBLIC  C 	Label_Induction_Import_Start
+PUBLIC  C 	Label_Induction_Import_End
 PUBLIC	C	Label_Luanch_Start
 PUBLIC	C	Label_Luanch_End
 PUBLIC	C	Lable_Luanch_Data_Start
@@ -44,39 +44,39 @@ MY_IMAGE_IMPORT_THUNK ENDS
 
 INDUCTION_DATA STRUCT
 	
-	nShellStep	 		DD	0	; DLLå¯èƒ½ä¼šå¤šæ¬¡è¿›å…¥shell,é€šè¿‡ç»Ÿè®¡è¿›å…¥æ­¥æ•°æ¥åˆ¤æ–­æ˜¯EXEè¿˜æ˜¯DLL
+	nShellStep	 		DD	0	; DLL¿ÉÄÜ»á¶à´Î½øÈëshell,Í¨¹ıÍ³¼Æ½øÈë²½ÊıÀ´ÅĞ¶ÏÊÇEXE»¹ÊÇDLL
 	
-	LuanchBase	 		DD	?	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥
+	LuanchBase	 		DD	?	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë
 	
 	LuanchAllocBase	 	DD	?
 	
 	PresentImageBase	DD	?
 	
-	nLuanchPackSize		DD	?	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥
+	nLuanchPackSize		DD	?	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë
 	
 	szVirtualAlloc	 	DB	'VirtualAlloc', 0
 	
 	VirtualAllocAddr 	DD	0
 	
-	TlsTable	 		DB	18h DUP (?)	; æš‚æ—¶æœªä½¿ç”¨åˆ°
+	TlsTable	 		DB	18h DUP (?)	; ÔİÊ±Î´Ê¹ÓÃµ½
 
 INDUCTION_DATA ENDS
 
 
 LUANCH_DATA STRUCT
-OEP					DD	?	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥
-IsMutateImpTable	DD	?	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥
-OriginalImpTableAddr	DD	?	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥
-IsDll				DD	?	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥
-OriginalRelocAddr	DD	?	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥	
-SectionPackInfo		DB	0a0h DUP (?)	; éœ€è¦å¤–å£³ç¨‹åºå†™å…¥
+OEP					DD	?	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë
+IsMutateImpTable	DD	?	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë
+OriginalImpTableAddr	DD	?	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë
+IsDll				DD	?	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë
+OriginalRelocAddr	DD	?	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë	
+SectionPackInfo		DB	0a0h DUP (?)	; ĞèÒªÍâ¿Ç³ÌĞòĞ´Èë
 nLuanchAllocStep    DD	0
 szVirtualFree		DB	'VirtualFree', 0
 VirtualFreeADDR		DD	0
 szKer32DLLName		DB	'KERNEL32.dll', 0, 0
 hFile				DD	0
-; å·²ä¸‹æ•°æ®éœ€è¦ä»ç¬¬ä¸€æ®µSHELLå¤åˆ¶åˆ°ç¬¬äºŒæ®µSHELL
-; ä¸‰ä¸ªå‡½æ•°æ¬¡åºä¸å¯æ”¹å˜
+; ÒÑÏÂÊı¾İĞèÒª´ÓµÚÒ»¶ÎSHELL¸´ÖÆµ½µÚ¶ş¶ÎSHELL
+; Èı¸öº¯Êı´ÎĞò²»¿É¸Ä±ä
 GPAAddr				DD	0
 GMHAddr				DD	0
 LLAAddr				DD	0
@@ -87,7 +87,7 @@ LUANCH_DATA ENDS
 
 
 ; C calling convention
-; size_t aP_depack_asm( const void *source, void *destination )ï¼›ï¼›
+; size_t aP_depack_asm( const void *source, void *destination )£»£»
 proc_aP_depack_asm PROTO
 
 
