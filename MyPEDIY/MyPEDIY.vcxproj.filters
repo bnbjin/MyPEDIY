@@ -36,9 +36,6 @@
     <ClCompile Include="singleton.cpp">
       <Filter>Pattern\src</Filter>
     </ClCompile>
-    <ClCompile Include="winmain.h">
-      <Filter>头文件</Filter>
-    </ClCompile>
     <ClCompile Include="config.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -72,14 +69,17 @@
     <ClCompile Include="utilities.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="winmain.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="shell.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MemoryPool.cpp">
       <Filter>内存池</Filter>
+    </ClCompile>
+    <ClCompile Include="winmain.h">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="winmain.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -160,5 +160,10 @@
     <CustomBuild Include="ASMshell.asm">
       <Filter>源文件</Filter>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ASMshell.inc">
+      <Filter>头文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
