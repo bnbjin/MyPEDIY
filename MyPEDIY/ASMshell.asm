@@ -9,7 +9,7 @@ INCLUDE c:\masm32\include\windows.inc
 INCLUDE ASMshell.inc 
 
 
-.code
+.CODE
 Label_Shell_Start	LABEL	DWORD
 Label_Induction_Start	LABEL	DWORD
 
@@ -77,38 +77,32 @@ __next0:
 	call	dword ptr [ebp + (GPAAddr - Label_Induction_Start)]
 	mov		dword ptr [ebp + (InductionData.VirtualAllocAddr - Label_Induction_Start)],eax
 	
-	; VirtualAlloc(0, nLuanchPackSize, MEM_COMMIT, PAGE_READWRITE)
+	; VirtualAlloc(0, nLuanchOriginalSize, MEM_COMMIT, PAGE_READWRITE)
 	push	PAGE_READWRITE
 	push	MEM_COMMIT
-	push	dword ptr [ebp + (InductionData.nLuanchPackSize - Label_Induction_Start)]
+	push	dword ptr [ebp + (InductionData.nLuanchOriginalSize - Label_Induction_Start)]
 	push	0
 	call	dword ptr [ebp + (InductionData.VirtualAllocAddr - Label_Induction_Start)]
 	
 	; 将外壳第二段地址放到LuanchAllocBase，DLL退出时会用到
 	push	eax ; 对应下面的pop edx
 	mov		dword ptr [ebp + (InductionData.LuanchAllocBase - Label_Induction_Start)], eax
-	mov		ebx, dword ptr [ebp + (InductionData.LuanchBase - Label_Induction_Start)]
 	
 	; *  解压缩第二段外壳代码  *
-	; _aP_depack_asm(InductionBase + ebp, 前面分配的内存空间);
-IFNDEF __ASMSHELL_DEBUG__
-	add		ebx, ebp
+	
+	; proc_aP_depack_asm_safe(
+	;			InductionBase + ebp, 
+	;			InductionData.nLuanchPackSize
+	;			前面分配的内存空间, 
+	;			InductionData.nLuanchOriginalSize);
+	push 	dword ptr [ebp + (InductionData.nLuanchOriginalSize - Label_Induction_Start)] 
 	push	eax
+	push 	dword ptr [ebp + (InductionData.nLuanchPackSize - Label_Induction_Start)]
+	mov		ebx, dword ptr [ebp + (InductionData.LuanchBase - Label_Induction_Start)]
+	add		ebx, ebp
 	push	ebx
-	call	proc_aP_depack_asm
-ENDIF	; IFDEF __ASMSHELL_DEBUG__
-IFDEF __ASMSHELL_DEBUG__
-	; *  复制第二段SHELL到申请的内存空间中  *
-	mov 	ecx, dword ptr [ebp + (InductionData.nLuanchPackSize - Label_Induction_Start)] 
-	lea 	esi, dword ptr [ebp + (Label_Luanch_Start - Label_Shell_Start)]
-	mov 	edi, eax
-MoveLuanchToAllocation:
-	mov 	al, byte ptr [esi]
-	mov 	byte ptr [edi], al
-	inc 	esi
-	inc 	edi
-	loop 	MoveLuanchToAllocation
-ENDIF
+	call	proc_aP_depack_asm_safe
+	add		esp, 10h
 	
 	pop		edx	; 对应上面的push eax
 	; 复制三个初始函数的地址到第二段外壳的数据表中
@@ -123,7 +117,7 @@ MoveThreeFuncAddr:
 	loop	MoveThreeFuncAddr
 	
 	; 复制ap_depack_asm地址到第二段外壳的数据表中
-	lea		eax, proc_aP_depack_asm
+	lea		eax, proc_aP_depack_asm_safe
 	mov		dword ptr [edx + (LuanchData.aPDepackASMAddr - Label_Luanch_Start)], eax
 	
 	; 复制VirtualAlloc地址到第二段外壳的数据表中
@@ -138,6 +132,232 @@ MoveThreeFuncAddr:
 	push	ebp
 	jmp		edx
 
+Label__aP_depack_asm_safe_Start LABEL DWORD
+
+; C calling convention
+getbitM MACRO
+LOCAL stillbitsleft
+    add    dl, dl
+    jnz    stillbitsleft
+
+    sub    dword ptr [esp + 4], 1 ; read one byte from source
+    jc     return_error           ;
+
+    mov    dl, [esi]
+    inc    esi
+
+    add    dl, dl
+    inc    dl
+stillbitsleft:
+ENDM getbitM
+
+domatchM MACRO reg
+    push   ecx
+    mov    ecx, [esp + 60]    ; ecx = dstlen
+    sub    ecx, [esp + 4]     ; ecx = num written
+    cmp    reg, ecx
+    pop    ecx
+    ja     return_error
+
+    sub    [esp], ecx         ; write ecx bytes to destination
+    jc     return_error       ;
+
+    push   esi
+    mov    esi, edi
+    sub    esi, reg
+    rep    movsb
+    pop    esi
+ENDM domatchM
+
+getgammaM MACRO reg
+LOCAL getmorebits
+    mov    reg, 1
+getmorebits:
+    getbitM
+    adc    reg, reg
+    jc     return_error
+    getbitM
+    jc     getmorebits
+ENDM getgammaM
+
+comment /
+	Description:
+		C convention
+		unsigned int aP_depack_safe(const void *source,
+                            unsigned int srclen,
+                            void *destination,
+                            unsigned int dstlen);
+/
+proc_aP_depack_asm_safe PROC
+
+    pushad
+
+    mov    esi, [esp + 36]    ; C calling convention
+    mov    eax, [esp + 40]
+    mov    edi, [esp + 44]
+    mov    ecx, [esp + 48]
+
+    push   eax
+    push   ecx
+
+    test   esi, esi
+    jz     return_error
+
+    test   edi, edi
+    jz     return_error
+
+    cld
+    xor    edx, edx
+
+literal:
+    sub    dword ptr [esp + 4], 1 ; read one byte from source
+    jc     return_error           ;
+
+    mov    al, [esi]
+    add    esi, 1
+
+    sub    dword ptr [esp], 1 ; write one byte to destination
+    jc     return_error       ;
+
+    mov    [edi], al
+    add    edi, 1
+
+    mov    ebx, 2
+
+nexttag:
+    getbitM
+    jnc    literal
+
+    getbitM
+    jnc    codepair
+
+    xor    eax, eax
+    getbitM
+    jnc    shortmatch
+
+    getbitM
+    adc    eax, eax
+    getbitM
+    adc    eax, eax
+    getbitM
+    adc    eax, eax
+    getbitM
+    adc    eax, eax
+    jz     thewrite
+
+    mov    ebx, [esp + 56]    ; ebx = dstlen
+    sub    ebx, [esp]         ; ebx = num written
+    cmp    eax, ebx
+    ja     return_error
+
+    push   edi
+    sub    edi, eax
+    mov    al, [edi]
+    pop    edi
+
+thewrite:
+    sub    dword ptr [esp], 1 ; write one byte to destination
+    jc     return_error       ;
+
+    mov    [edi], al
+    inc    edi
+
+    mov    ebx, 2
+
+    jmp    nexttag
+
+codepair:
+    getgammaM eax
+
+    sub    eax, ebx
+
+    mov    ebx, 1
+
+    jnz    normalcodepair
+
+    getgammaM ecx
+
+    domatchM ebp
+
+    jmp    nexttag
+
+normalcodepair:
+    dec    eax
+
+    test   eax, 0ff000000h
+    jnz    return_error
+
+    shl    eax, 8
+
+    sub    dword ptr [esp + 4], 1 ; read one byte from source
+    jc     return_error           ;
+
+    mov    al, [esi]
+    inc    esi
+
+    mov    ebp, eax
+
+    getgammaM ecx
+
+    cmp    eax, 32000
+    sbb    ecx, -1
+
+    cmp    eax, 1280
+    sbb    ecx, -1
+
+    cmp    eax, 128
+    adc    ecx, 0
+
+    cmp    eax, 128
+    adc    ecx, 0
+
+    domatchM eax
+
+    jmp    nexttag
+
+shortmatch:
+    sub    dword ptr [esp + 4], 1 ; read one byte from source
+    jc     return_error           ;
+
+    mov    al, [esi]
+    inc    esi
+
+    xor    ecx, ecx
+    db     0c0h, 0e8h, 001h
+    jz     donedepacking
+
+    adc    ecx, 2
+
+    mov    ebp, eax
+
+    domatchM eax
+
+    mov    ebx, 1
+
+    jmp    nexttag
+
+return_error:
+    add    esp, 8
+
+    popad
+
+    or     eax, -1            ; return APLIB_ERROR in eax
+
+    ret
+
+donedepacking:
+    add    esp, 8
+
+    sub    edi, [esp + 40]
+    mov    [esp + 28], edi    ; return unpacked length in eax
+
+    popad
+
+    ret
+	
+proc_aP_depack_asm_safe ENDP
+Label__aP_depack_asm_safe_End LABEL DWORD
+	
 Label_Induction_End LABEL DWORD
 
 
@@ -224,107 +444,6 @@ Lable_Luanch_Data_Start	LABEL	DWORD
 LuanchData	LUANCH_DATA	<>
 
 Lable_Luanch_Data_End	LABEL 	DWORD
-
-
-; C calling convention
-; size_t aP_depack_asm( const void *source, void *destination );
-proc_aP_depack_asm PROC
-    
-	pushad
-    mov    esi, [esp + 36]    
-    mov    edi, [esp + 40]
-    cld
-    mov    dl, 80h
-    xor    ebx, ebx
-literal:
-    movsb
-    mov    bl, 2
-nexttag:
-    call   getbit
-    jnc    literal
-
-    xor    ecx, ecx
-    call   getbit
-    jnc    codepair
-    xor    eax, eax
-    call   getbit
-    jnc    shortmatch
-    mov    bl, 2
-    inc    ecx
-    mov    al, 10h
-getmorebits:
-    call   getbit
-    adc    al, al
-    jnc    getmorebits
-    jnz    domatch
-    stosb
-    jmp    short nexttag
-codepair:
-    call   getgamma_no_ecx
-    sub    ecx, ebx
-    jnz    normalcodepair
-    call   getgamma
-    jmp    short domatch_lastpos
-shortmatch:
-    lodsb
-    shr    eax, 1
-    jz     donedepacking
-    adc    ecx, ecx
-    jmp    short domatch_with_2inc
-normalcodepair:
-    xchg   eax, ecx
-    dec    eax
-    shl    eax, 8
-    lodsb
-    call   getgamma
-    cmp    eax, 32000
-    jae    domatch_with_2inc
-    cmp    ah, 5
-    jae    domatch_with_inc
-    cmp    eax, 7fh
-    ja     domatch_new_lastpos
-domatch_with_2inc:
-    inc    ecx
-domatch_with_inc:
-    inc    ecx
-domatch_new_lastpos:
-    xchg   eax, ebp
-domatch_lastpos:
-    mov    eax, ebp
-    mov    bl, 1
-domatch:
-    push   esi
-    mov    esi, edi
-    sub    esi, eax
-    rep    movsb
-    pop    esi
-    jmp    short nexttag
-getbit:
-    add     dl, dl
-    jnz     stillbitsleft
-    mov     dl, [esi]
-    inc     esi
-    adc     dl, dl
-stillbitsleft:
-    ret
-getgamma:
-    xor    ecx, ecx
-getgamma_no_ecx:
-    inc    ecx
-getgammaloop:
-    call   getbit
-    adc    ecx, ecx
-    call   getbit
-    jc     getgammaloop
-    ret
-donedepacking:
-    sub    edi, [esp + 40]
-    mov    [esp + 28], edi    ; return unpacked length in eax
-    popad
-    ret	8h
-	
-proc_aP_depack_asm ENDP
-
 
 comment /
 	Description:	
