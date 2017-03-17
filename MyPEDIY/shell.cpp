@@ -35,12 +35,12 @@ int ImployShell(void* _pImageBase, void** _ppShellSection)
 
 	/*  TODO : 填写shell相关数据字段  */
 	PInduction_Data pInductionData = (PInduction_Data)((unsigned long)(*_ppShellSection) + (unsigned long)(&Label_Induction_Data_Start) - (unsigned long)(&Label_Shell_Start));
-	pInductionData->LuanchBase = pLastSecHeader->VirtualAddress + (DWORD)(&Label_Luanch_Start) - (DWORD)(&Label_Shell_Start);
-	pInductionData->nLuanchPackSize = (DWORD)(&Label_Luanch_End) - (DWORD)(&Label_Luanch_Start);
+	pInductionData->LuanchBase = (DWORD)(&Label_Luanch_Start) - (DWORD)(&Label_Shell_Start);
+	pInductionData->nLuanchOriginalSize = (DWORD)(&Label_Luanch_End) - (DWORD)(&Label_Luanch_Start);
 	PLuanch_Data pLuanchData = (PLuanch_Data)((unsigned long)(*_ppShellSection) + (unsigned long)(&Lable_Luanch_Data_Start) - (unsigned long)(&Label_Shell_Start));
 	pLuanchData->OEP = pNTHeader->OptionalHeader.AddressOfEntryPoint;
 	pLuanchData->IsMutateImpTable = ISMUTATEIMPORT ? 1 : 0;
-	pLuanchData->OriginalImpTableAddr = 0;
+	pLuanchData->OriginalImpTableAddr = pNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	pLuanchData->IsDLL = 0;
 	pLuanchData->OriginalRelocAddr = 0;
 

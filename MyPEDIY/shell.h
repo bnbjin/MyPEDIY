@@ -30,9 +30,10 @@ struct Induction_Import
 struct Induction_Data 
 {
 	DWORD	nShellStep;
-	DWORD	LuanchBase;
+	DWORD	LuanchBase;			// RVA
 	DWORD   LuanchAllocBase;
 	DWORD   ImageBase;
+	DWORD	nLuanchOriginalSize;
 	DWORD   nLuanchPackSize;
 	BYTE	szVirtualAlloc[13];
 	DWORD	VirtualAllocAddr;
@@ -46,6 +47,7 @@ struct Luanch_Data
 	DWORD	OriginalImpTableAddr;
 	DWORD	IsDLL;
 	DWORD	OriginalRelocAddr;
+	BYTE	SectionPackInfo[0xa0];
 };
 #pragma pack(pop)
 

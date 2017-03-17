@@ -1,6 +1,6 @@
 IFNDEF __ASMSHELL_INC__
 __ASMSHELL_INC__	equ	<1>
-__ASMSHELL_DEBUG__	equ <1>
+;__ASMSHELL_DEBUG__	equ <1>
 
 PUBLIC  C	Label_Shell_Start
 PUBLIC  C   Label_Shell_End
@@ -46,11 +46,13 @@ INDUCTION_DATA STRUCT
 	
 	nShellStep	 		DD	0	; DLL可能会多次进入shell,通过统计进入步数来判断是EXE还是DLL
 	
-	LuanchBase	 		DD	?	; 需要外壳程序写入
+	LuanchBase	 		DD	?	; 需要外壳程序写入	RVA
 	
 	LuanchAllocBase	 	DD	?
 	
 	PresentImageBase	DD	?
+	
+	nLuanchOriginalSize	DD	?
 	
 	nLuanchPackSize		DD	?	; 需要外壳程序写入
 	
@@ -86,9 +88,15 @@ PresentImageBase	DD	0
 LUANCH_DATA ENDS
 
 
-; C calling convention
-; size_t aP_depack_asm( const void *source, void *destination )；；
-proc_aP_depack_asm PROTO
+comment /
+	Description:
+		C convention
+		unsigned int aP_depack_safe(const void *source,
+                            unsigned int srclen,
+                            void *destination,
+                            unsigned int dstlen);
+/
+proc_aP_depack_asm_safe PROTO
 
 
 ENDIF  ; __ASMSHELL_INC__

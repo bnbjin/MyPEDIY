@@ -84,20 +84,22 @@ int ProtTheFile(TCHAR *szFilePath)
 		{
 			return  FALSE;
 		}
-		
+
+
 		/*  添加shell段  */
 		ImployShell(pImageBase, &pShellSection);
 
-		/*  压缩区块数据  */
-		// PackFile(hFile, pImageBase);
-	
 
 		/*  融合内存块 */
 		void* pNewImage = MergeMemBlock(pImageBase, pShellSection);
-		delete []pImageBase;
+		delete[]pImageBase;
 		pImageBase = pNewImage;
 		pNewImage = 0;
 
+
+		/*  压缩区块数据  */
+		PackFile(pImageBase);
+	
 
 		/*  把堆中数据写入文件  */
 		// TODO : mergememblock
