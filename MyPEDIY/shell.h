@@ -2,7 +2,7 @@
 #define __SHELL_H__
 
 #include <windows.h>
-
+#include <vector>
 
 /*  shell中的变量  */
 extern "C"	DWORD	Label_Shell_Start;
@@ -44,6 +44,7 @@ struct Luanch_Data
 {
 	DWORD	OEP;
 	DWORD	IsMutateImpTable;
+	DWORD	MutateImpTableAddr;		// RVA to shell
 	DWORD	OriginalImpTableAddr;
 	DWORD	IsDLL;
 	DWORD	OriginalRelocAddr;
@@ -55,10 +56,29 @@ typedef Induction_Import* UNALIGNED PInduction_Import;
 typedef Induction_Data* UNALIGNED PInduction_Data;
 typedef Luanch_Data* UNALIGNED PLuanch_Data;
 
+
+// 需要写入shell的数据的类型
+enum ShellDataType
+{
+	MImp,
+	MReloc,
+	MTLS,
+	MOthers
+};
+
+// 需要写入shell的数据信息
+struct DataToShellNode
+{
+	void *pData;
+	unsigned long nData;
+	ShellDataType DataType;
+};
+
+
 /*
 	Description:	安置shell区块,_pShellSection需要调用者delete
 */
-int ImployShell(void* _pImageBase, void **_ppShellSection);
+int ImployShell(void* _pImageBase, std::vector<DataToShellNode> &_rvDataToShell, void **_ppShellSection);
 
 
 #endif // __SEHLL_H__

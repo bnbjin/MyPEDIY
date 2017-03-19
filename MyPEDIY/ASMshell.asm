@@ -26,18 +26,18 @@ Label_Induction_Import_End	LABEL	DWORD
 	
 	; IAT
 	; 三个函数次序不可改变
-	GPAAddr	DD	GPAThunk - Label_Shell_Start	; GetProcAddress Address
-	GMHAddr	DD	GMHThunk - Label_Shell_Start	; GetModuleHandle Address
-	LLAAddr	DD	LLAThunk - Label_Shell_Start	; LoadLibraryA Address
-			DD  0
+	GPAAddr	MY_IMAGE_IMPORT_THUNK	<<GPAThunk - Label_Shell_Start>>	; GetProcAddress Address
+	GMHAddr	MY_IMAGE_IMPORT_THUNK	<<GMHThunk - Label_Shell_Start>>	; GetModuleHandle Address
+	LLAAddr	MY_IMAGE_IMPORT_THUNK	<<LLAThunk - Label_Shell_Start>>	; LoadLibraryA Address
+			MY_IMAGE_IMPORT_THUNK	<<0>>
 
 	; DLLName
 	DLLName	DB	'KERNEL32.dll', 0, 0
 	
 	; Thunks
-	GPAThunk	MY_IMAGE_IMPORT_THUNK	<0, 'GetProcAddress'>
-	GMHThunk	MY_IMAGE_IMPORT_THUNK	<0, 'GetModuleHandleA'>
-	LLAThunk	MY_IMAGE_IMPORT_THUNK	<0, 'LoadLibraryA'>
+	GPAThunk	MY_IMAGE_IMPORT_BY_NAME	<0, 'GetProcAddress'>
+	GMHThunk	MY_IMAGE_IMPORT_BY_NAME	<0, 'GetModuleHandleA'>
+	LLAThunk	MY_IMAGE_IMPORT_BY_NAME	<0, 'LoadLibraryA'>
 
 	; todo: mutate reloc data
 Label_Induction_Data_Start	LABEL	DWORD
@@ -90,7 +90,7 @@ __next0:
 	
 	; *  解压缩第二段外壳代码  *
 	
-	; proc_aP_depack_asm_safe(
+	; Proc_aP_depack_asm_safe(
 	;			InductionBase + ebp, 
 	;			InductionData.nLuanchPackSize
 	;			前面分配的内存空间, 
@@ -101,7 +101,7 @@ __next0:
 	mov		ebx, dword ptr [ebp + (InductionData.LuanchBase - Label_Induction_Start)]
 	add		ebx, ebp
 	push	ebx
-	call	proc_aP_depack_asm_safe
+	call	Proc_aP_depack_asm_safe
 	add		esp, 10h
 	
 	pop		edx	; 对应上面的push eax
@@ -117,7 +117,7 @@ MoveThreeFuncAddr:
 	loop	MoveThreeFuncAddr
 	
 	; 复制ap_depack_asm地址到第二段外壳的数据表中
-	lea		eax, proc_aP_depack_asm_safe
+	lea		eax, Proc_aP_depack_asm_safe
 	mov		dword ptr [edx + (LuanchData.aPDepackASMAddr - Label_Luanch_Start)], eax
 	
 	; 复制VirtualAlloc地址到第二段外壳的数据表中
@@ -188,7 +188,7 @@ comment /
                             void *destination,
                             unsigned int dstlen);
 /
-proc_aP_depack_asm_safe PROC
+Proc_aP_depack_asm_safe PROC
 
     pushad
 
@@ -355,7 +355,7 @@ donedepacking:
 
     ret
 	
-proc_aP_depack_asm_safe ENDP
+Proc_aP_depack_asm_safe ENDP
 Label__aP_depack_asm_safe_End LABEL DWORD
 	
 Label_Induction_End LABEL DWORD
@@ -397,10 +397,10 @@ Label_Luanch_Start	LABEL	DWORD
 	
 	; 如果kernel32.dll尚未加载到内存中，则LoadLibrary("kernel32.dll")
 	.if	eax == 0
-		push edx
+		push	edx
 		push	esi
 		call	dword ptr [edx + (LuanchData.LLAAddr - Label_Luanch_Start)]
-		pop edx
+		pop		edx
 	.endif
 
 
@@ -418,11 +418,22 @@ Label_Luanch_Start	LABEL	DWORD
 	
 	; *  解压缩各区块  *
 	; *  恢复原输入表  *
-	comment /
-	push Label_Luanch_Start
-	push edx
-	proc_UnmutateImport
-	/
+	mov 	eax, DWORD PTR [edx + (LuanchData.IsMutateImpTable - Label_Luanch_Start)]
+	.IF eax == 0
+		push	DWORD PTR [edx + (LuanchData.LLAAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.GMHAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.GPAAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.OriginalImpTableAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.PresentImageBase - Label_Luanch_Start)]
+		call	Proc_InitOrigianlImport
+		add		esp, 14h
+	.ELSE
+		comment /
+			push Label_Luanch_Start
+			push edx
+			Proc_UnmutateImport
+		/
+	.ENDIF
 	; *  修正重定位数据  *
 	; *  anti  dump  *
 	
@@ -445,128 +456,107 @@ LuanchData	LUANCH_DATA	<>
 
 Lable_Luanch_Data_End	LABEL 	DWORD
 
+
 comment /
 	Description:	
-	Parameters:	RuntimeLuanchBase		DWORD
-				CompiletimeLuanchBase	DWORD		
+	Parameters:	RuntimeImageBase		DWORD
+				OriginalImportRVA		DWORD	RVA to Imagebase
+				MutateImportRVA			DWORD	RVA to ImageBase
 /
 comment /
-proc_UnmutateImport PROC 
-	USES	ebp, eax, ebx, ecx, edx, esi, edi 
+Proc_UnmutateImport	PROC
+	 
+	pushad	;esp -= 0x20
+	
 	; ebp = RuntimeLuanchBase
-	mov	ebp, dword ptr ss:[esp + 4h]
+	; esi = OriginalImportRVA
+	; edi = MutateImportRVA
+	mov		ebp, dword ptr ss:[esp + 24h]
+	mov		esi, dword ptr ss:[esp + 28h]
+	mov		edi, dword ptr ss:[esp + 2Ch]
+
+	.WHILE	eax != 0
 	
-AllSectionDePacked:
-	mov	eax,dword ptr [ebp+(S_IsProtImpTable-ShellStart)]
-	.if	eax == 0
-		mov	edi,dword ptr [ebp+(ImpTableAddr-ShellStart)]
-		add	edi,dword ptr [ebp+(FileHandle-ShellStart)]
-	    GetNextDllFuncAddr:
-		mov	esi,dword ptr [edi+0ch]
-		.if	esi == 0
-			jmp	AllDllFuncAddrGeted
-		.endif
-		add	esi,dword ptr [ebp+(FileHandle-ShellStart)]
-		push	esi
-		call	dword ptr [ebp+(GetmulehandleADDR-ShellStart)]
-		.if	eax==0
-			push	esi
-			call	dword ptr [ebp+(LoadlibraryADDR-ShellStart)]
-		.endif
-		mov	esi,eax
-		mov	edx,dword ptr [edi]
-		.if	edx == 0
-			mov	edx,dword ptr [edi+10h]
-		.endif
-		add	edx,dword ptr [ebp+(FileHandle-ShellStart)]
-		mov	ebx,dword ptr [edi+10h]
-		add	ebx,dword ptr [ebp+(FileHandle-ShellStart)]
-	    GetNextFuncAddr:
-		mov	eax,dword ptr [edx]
-		.if	eax == 0
-			jmp	AllFuncAddrGeted
-		.endif
-		push	ebx
-		push	edx
-		cdq
-		.if	edx == 0	
-			add	eax,2h
-			add	eax,dword ptr [ebp+(FileHandle-ShellStart)]
-		.else
-			and	eax,7fffffffh
-		.endif
-		push	eax
-		push	esi
-		call	dword ptr [ebp+(GetprocaddressADDR-ShellStart)]
-		mov	dword ptr [ebx],eax
-		pop	edx
-		pop	ebx
-		add	edx,4h
-		add	ebx,4h
-		jmp	GetNextFuncAddr
-AllFuncAddrGeted:
-		add	edi,14h
-		jmp	GetNextDllFuncAddr
-	    AllDllFuncAddrGeted:
-	.else
-		mov	edx,dword ptr [ebp+(ImpTableAddr-ShellStart)]
-		add	edx,ebp
-	    GetNextDllFuncAddr2:
-		mov	edi,dword ptr [edx]
-		.if	edi == 0
-			jmp	AllDllFuncAddrGeted2
-		.endif
-		add	edi,dword ptr [ebp+(FileHandle-ShellStart)]
-		add	edx,5h
-		mov	esi,edx
-		push	esi
-		call	dword ptr [ebp+(GetmulehandleADDR-ShellStart)]
-		.if	eax==0
-			push	esi
-			call	dword ptr [ebp+(LoadlibraryADDR-ShellStart)]
-		.endif
-		movzx	ecx,byte ptr [esi-1]
-		add	esi,ecx
-		mov	edx,esi
-		mov	esi,eax
-		inc	edx
-		mov	ecx,dword ptr [edx]
-		add	edx,4h
-	    GetNextFuncAddr2:
-		push	ecx
-		movzx	eax,byte ptr [edx]
-		.if	eax == 0
-			inc	edx
-			push	edx
-			mov	eax,dword ptr [edx]
-			push	eax
-			push	esi
-			call	dword ptr [ebp+(GetprocaddressADDR-ShellStart)]
-			mov	dword ptr [edi],eax
-			pop	edx
-			add	edx,4h
-		.else
-			inc	edx
-			push	edx
-			push	edx
-			push	esi
-			call	dword ptr [ebp+(GetprocaddressADDR-ShellStart)]
-			mov	dword ptr [edi],eax
-			pop	edx
-			movzx	eax,byte ptr [edx-1]
-			add	edx,eax
-		.endif
-		inc	edx
-		add	edi,4h
-		pop	ecx
-		loop	GetNextFuncAddr2
-		jmp	GetNextDllFuncAddr2
-	    AllDllFuncAddrGeted2:
-	.endif
+	.ENDW	
 	
-	ret 4h
-proc_UnMutateImport ENDP
+	popad
+	ret 
+	
+Proc_UnmutateImport ENDP
 /
+
+ORDINAL_FLAG_DWORD	EQU	80000000h	
+comment /
+	Description:	初始化原输入表
+					C convention
+	Parameters:		_RuntimeImageBase	DWORD
+					_OriginalImportRVA	DWORD	RVA to ImageBase
+					_GPAAddr			DWORD	
+					_GMHAddr			DWORD
+					_LLAAddr			DWORD
+/
+Proc_InitOrigianlImport PROC C PRIVATE \
+	USES ebx edx esi edi \
+	, _RuntimeImageBase:DWORD, _OriginalImportRVA:DWORD, _GPAAddr:DWORD, _GMHAddr:DWORD, _LLAAddr:DWORD
+	
+	mov 	edx, _RuntimeImageBase
+	mov 	esi, _OriginalImportRVA
+	
+	mov 	eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).FirstThunk
+	.WHILE  eax != 0
+		mov 	edi, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).FirstThunk
+		mov 	eax, DWORD PTR [edx + edi]
+		.WHILE	eax != 0		
+			; eax = GetModuleHandleA(Import.DLLName)
+			; if (eax == 0)	LoadLibraryA(Import.DLLName)
+			push	edx 
+			mov 	eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).DLLName
+			add 	eax, edx
+			push 	eax
+			call    DWORD PTR [_GMHAddr]
+			pop		edx
+			.IF eax == 0
+				push 	edx
+				mov 	eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).DLLName
+				add 	eax, edx 
+				push 	eax
+				call 	DWORD PTR [_LLAAddr]
+				pop		edx
+			.ENDIF
+			
+			push	edx
+			mov 	ebx, DWORD PTR [edx + edi]
+			push 	ebx
+			and		ebx, ORDINAL_FLAG_DWORD
+			.IF		ebx == 0
+			;	STRING
+				pop 	ebx
+				; GetProcAddress(eax, Import.FirstThunk[n])
+				lea		ebx, DWORD PTR [edx + ebx + TYPE WORD]	;越过Hint
+			.ELSE
+			;	ORDINAL
+				pop		ebx
+				and		ebx, 0000ffffh
+			.ENDIF
+			push 	ebx
+			push	eax
+			call	DWORD PTR [_GPAAddr]
+			pop		edx
+			; Import.FirstThunk[n] = eax
+			mov		DWORD PTR [edx + edi], eax
+			
+			; 调整指针指向下一个IMPORT_THUNK_DATA
+			add 	edi, TYPE DWORD
+			mov		eax, DWORD PTR [edx + edi]
+		.ENDW
+		add 	esi, TYPE MY_IMAGE_IMPORT_DESCRIPTOR; 调整指针指向下一个IMPORT_DESCRIPTOR
+		mov		eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).FirstThunk
+	.ENDW
+	
+	ret
+	
+Proc_InitOrigianlImport ENDP
+ 
 
 Label_Luanch_End	LABEL 	DWORD
 Label_Shell_End	LABEL	DWORD

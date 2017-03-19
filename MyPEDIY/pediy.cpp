@@ -58,9 +58,10 @@ int ProtTheFile(TCHAR *szFilePath)
 
 
 		/*  输入表变异  */
+		MutateImportInfo MImpInfo = {0};
 		if (ISMUTATEIMPORT)
 		{
-			MutateImport();
+			MutateImport(pImageBase, &MImpInfo);
 		}
 
 
@@ -87,7 +88,16 @@ int ProtTheFile(TCHAR *szFilePath)
 
 
 		/*  添加shell段  */
-		ImployShell(pImageBase, &pShellSection);
+		std::vector<DataToShellNode> vDTS;
+		DataToShellNode tmpDTSN;
+		if (ISMUTATEIMPORT)
+		{
+			tmpDTSN.DataType = ShellDataType::MImp;
+			tmpDTSN.pData = MImpInfo.pMutateImport;
+			tmpDTSN.nData = MImpInfo.nMutateImport;
+			vDTS.push_back(tmpDTSN);
+		}
+		ImployShell(pImageBase, vDTS, &pShellSection);
 
 
 		/*  融合内存块 */
@@ -115,34 +125,13 @@ int ProtTheFile(TCHAR *szFilePath)
 		/*  加密完成,清理  */
 		if (0 != pImageBase) delete []pImageBase;
 		if (0 != pShellSection) delete []pShellSection;
-		//if (ISMUTATEIMPORT)	delete []m_pImportTable;
+		if (0 != MImpInfo.pMutateImport)	delete[]MImpInfo.pMutateImport;
 		//if (ISPACKRES)	delete []pMapOfPackRes;
 		if (0 != pExtraData)	delete []pExtraData;
 
 		CloseHandle(hFile);
 
 		ISWORKING = false;
-
-#ifdef MYSWITCH
-		//*************处理外壳并写入******
-		DisposeShell(pMapOfPackRes, nNoPackResSize, m_pImportTable, m_pImportTableSize, hDlg);
-
-
-		//*************清空区块名吗******
-		if (IsClsSecName)
-			ClsSectionName();
-
-		//*************重写文件头******
-		SetFilePointer(hPackFile, 0x0, NULL, FILE_BEGIN);
-		nHeaderSize = m_pntHeaders->OptionalHeader.SizeOfHeaders;// 读出PE头大小
-
-		if (!WriteFile(hPackFile, (PCHAR)m_pImageBase, nHeaderSize, &nbWritten, NULL))
-		{
-			AddLine(hDlg, "错误!文件写失败!");
-			CloseHandle(hPackFile);
-			return FALSE;
-		}
-#endif // MYSWITCH
 	}
 	catch (...)
 	{

@@ -35,11 +35,18 @@ MY_IMAGE_IMPORT_DESCRIPTOR STRUCT
 	
 MY_IMAGE_IMPORT_DESCRIPTOR ENDS
 
-
 MY_IMAGE_IMPORT_THUNK STRUCT
+	UNION u1
+		Ordinal		DWORD	?
+		FuncAddr	DWORD	?
+	ENDS
+MY_IMAGE_IMPORT_THUNK ENDS
+
+
+MY_IMAGE_IMPORT_BY_NAME STRUCT
 	Hint		DW	?
 	FuncName	DB	32 DUP (?)
-MY_IMAGE_IMPORT_THUNK ENDS
+MY_IMAGE_IMPORT_BY_NAME ENDS
 
 
 INDUCTION_DATA STRUCT
@@ -68,6 +75,7 @@ INDUCTION_DATA ENDS
 LUANCH_DATA STRUCT
 OEP					DD	?	; 需要外壳程序写入
 IsMutateImpTable	DD	?	; 需要外壳程序写入
+MutateImpTableAddr	DD	?	; 需要外壳程序写入
 OriginalImpTableAddr	DD	?	; 需要外壳程序写入
 IsDll				DD	?	; 需要外壳程序写入
 OriginalRelocAddr	DD	?	; 需要外壳程序写入	
@@ -89,6 +97,22 @@ LUANCH_DATA ENDS
 
 
 comment /
+	FirstThunk|DLLName[32]|nFunc|FuncName[32]...
+/
+MUTATE_IMPORT_THUNK UNION
+	Ordinal		DWORD	?
+	ProcName	BYTE	32 DUP (?)
+MUTATE_IMPORT_THUNK ENDS
+
+MUTATE_IMPORT	STRUCT
+	FirstThunk	DD	?
+	DLLName		DB	32 DUP (?)
+	nFunc		DD	?
+	FuncName	MUTATE_IMPORT_THUNK <?>
+MUTATE_IMPORT 	ENDS
+
+
+comment /
 	Description:
 		C convention
 		unsigned int aP_depack_safe(const void *source,
@@ -96,7 +120,28 @@ comment /
                             void *destination,
                             unsigned int dstlen);
 /
-proc_aP_depack_asm_safe PROTO
+Proc_aP_depack_asm_safe PROTO
+
+
+comment /
+	Description:	
+	Parameters:	RuntimeImageBase		DWORD
+				OriginalImportRVA		DWORD
+				MutateImportRVA			DWORD
+/
+;Proc_UnmutateImport PROTO
+
+
+comment /
+	Description:	初始化原输入表
+					C convention
+	Parameters:		_RuntimeImageBase	DWORD
+					_OriginalImportRVA	DWORD	RVA to ImageBase
+					_GPAAddr			DWORD	
+					_GMHAddr			DWORD
+					_LLAAddr			DWORD
+/
+Proc_InitOrigianlImport PROTO C , _RuntimeImageBase:DWORD, _OriginalImportRVA:DWORD, _GPAAddr:DWORD, _GMHAddr:DWORD, _LLAAddr:DWORD
 
 
 ENDIF  ; __ASMSHELL_INC__

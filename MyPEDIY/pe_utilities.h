@@ -76,4 +76,9 @@ unsigned int CreateNewSection(void* _pImageBase, const unsigned long _secsize, v
 void* MergeMemBlock(void* _pImageBase, void* _pShellSection);
 
 
+/*
+	Description:	把原输入表所在区块属性设为可写
+*/
+int	MakeOriginalImportSecWritable(void *_pImageBase);
+
 #endif //__PE_UTILITIES_H__

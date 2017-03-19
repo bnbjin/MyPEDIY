@@ -241,3 +241,28 @@ void* MergeMemBlock(void* _pImageBase, void* _pShellSection)
 
 	return pNewMemBlock;
 }
+
+
+/*
+	Description:	把原输入表所在区块属性设为可写
+*/
+int	MakeOriginalImportSecWritable(void *_pImageBase)
+{
+	PIMAGE_NT_HEADERS pNTHeader = getNTHeader(_pImageBase);
+	PIMAGE_SECTION_HEADER pSecHeader = getSecHeader(_pImageBase);
+	IMAGE_DATA_DIRECTORY ImpD = (IMAGE_DATA_DIRECTORY)(pNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT]);
+
+	while (!(
+		ImpD.VirtualAddress >= pSecHeader->VirtualAddress \
+		&& ImpD.VirtualAddress <= (pSecHeader->VirtualAddress + pSecHeader->Misc.VirtualSize)))
+	{
+		pSecHeader++;
+	}
+	if (ImpD.VirtualAddress >= pSecHeader->VirtualAddress \
+		&& ImpD.VirtualAddress <= (pSecHeader->VirtualAddress + pSecHeader->Misc.VirtualSize))
+	{
+		pSecHeader->Characteristics |= IMAGE_SCN_MEM_WRITE;
+	}
+
+	return ERR_SUCCESS;
+}

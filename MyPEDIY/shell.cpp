@@ -4,23 +4,37 @@
 #include "pe_utilities.h"
 #include "config.h"
 
+// 一些需要写入shell的数据之间的间隔
+const unsigned long ulShellDataGap = 0x10;
+
 
 /*
 	Description:	安置shell区块
 */
-int ImployShell(void* _pImageBase, void** _ppShellSection)
+int ImployShell(void* _pImageBase, std::vector<DataToShellNode> &_rvDataToShell, void **_ppShellSection)
 {
 	unsigned long shellrawsize = (unsigned long)(&Label_Shell_End) - (unsigned long)(&Label_Shell_Start);
+	unsigned long shelldatasize = 0;
+	for (std::vector<DataToShellNode>::iterator iter = _rvDataToShell.begin(); iter < _rvDataToShell.end(); iter++)
+	{
+		shelldatasize += iter->nData;
+	}
+	unsigned long shellwholesize = shellrawsize + shelldatasize;
 
-	CreateNewSection(_pImageBase, shellrawsize, _ppShellSection);
+
+	CreateNewSection(_pImageBase, shellwholesize, _ppShellSection);
 
 	// 把shell的数据写入shell映像中
 	memcpy(*_ppShellSection, (&Label_Shell_Start), shellrawsize);
 
 	const PIMAGE_NT_HEADERS pNTHeader = getNTHeader(_pImageBase);
 	const PIMAGE_SECTION_HEADER pLastSecHeader = getLastSecHeader(_pImageBase);
-	
-	
+
+
+	/*  使原输入表所在区块可写  */
+	MakeOriginalImportSecWritable(_pImageBase);
+
+
 	/*  TODO : 修复SHELL的自建输入表  */
 	/* Import Descriptor: FirstThunk, OriginalFirstThunk, Name */
 	/* Thunks */
@@ -31,7 +45,7 @@ int ImployShell(void* _pImageBase, void** _ppShellSection)
 	pInductionImp->Thunk[0].u1.AddressOfData += pLastSecHeader->VirtualAddress;
 	pInductionImp->Thunk[1].u1.AddressOfData += pLastSecHeader->VirtualAddress;
 	pInductionImp->Thunk[2].u1.AddressOfData += pLastSecHeader->VirtualAddress;
-	
+
 
 	/*  TODO : 填写shell相关数据字段  */
 	PInduction_Data pInductionData = (PInduction_Data)((unsigned long)(*_ppShellSection) + (unsigned long)(&Label_Induction_Data_Start) - (unsigned long)(&Label_Shell_Start));
@@ -53,6 +67,26 @@ int ImployShell(void* _pImageBase, void** _ppShellSection)
 	pNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = (DWORD)(&Label_Induction_Import_End) - (DWORD)(&Label_Induction_Import_Start);
 	pNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress = pLastSecHeader->VirtualAddress + (DWORD)(&Label_Induction_Import_End) - (DWORD)(&Label_Shell_Start);
 	pNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size = 4 * sizeof(DWORD);
+
+
+	/*  把需要写入shell的数据写入*/
+	char* pShellData = RVAToPtr(_pImageBase, pLastSecHeader->VirtualAddress) + shellrawsize + ulShellDataGap;
+	
+	/*  把变异输入表写入shell  */
+	if (ISMUTATEIMPORT)
+	{
+		std::vector<DataToShellNode>::iterator iter = _rvDataToShell.begin();
+		while (ShellDataType::MImp != iter->DataType)
+		{
+			iter++;
+		}
+		if (ShellDataType::MImp == iter->DataType)
+		{
+			memcpy(pShellData, iter->pData, iter->nData);
+			pShellData += iter->nData + ulShellDataGap;
+		}
+		pLuanchData->MutateImpTableAddr = pShellData - (char*)_pImageBase - pLastSecHeader->VirtualAddress;
+	}
 
 	return	ERR_SUCCESS;
 }

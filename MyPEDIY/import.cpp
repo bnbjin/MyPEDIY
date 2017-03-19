@@ -1,30 +1,100 @@
 #include "import.h"
 #include "error.h"
+#include "pe_utilities.h"
 
+
+/*
+FirstThunk|DLLName[32]|nFunc|FuncName[32]...
+*/
 /*
 	Description:	输入表变异处理
 */
-int MutateImport()
+int MutateImport(void *_pImageBase, PMutateImportInfo _pMutateImportInfo)
 {
-#ifdef __IMPORT_SWITCH__
-	//为简单，此处申请0xa0000内存存放新输入表（假设生成的新输入表结构尺寸小于0xa0000）
-	m_pImportTable = new char[0xa0000];
-	if (m_pImportTable == NULL)
+	PIMAGE_NT_HEADERS pNTHeader = getNTHeader(_pImageBase);
+	PIMAGE_IMPORT_DESCRIPTOR pIID = (PIMAGE_IMPORT_DESCRIPTOR)RVAToPtr(_pImageBase, pNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+	PIMAGE_THUNK_DATA pThunk;
+	std::vector<MutateImportNode> vMuateImport;
+	MutateImportNode tmpImportNode;
+	MutateImportThunkNode tmpImpThunkNode;
+
+	/*  把原输入表关键信息读入  */
+	while (0 != pIID->FirstThunk)
 	{
-		AddLine(hDlg, "内存不足.");
-		return FALSE;
-	}
-	ZeroMemory(m_pImportTable, 0xa0000);
-	m_pImportTableSize = MoveImpTable(m_pImportTable);
+		memset(&tmpImportNode, 0, sizeof(MutateImportNode));
 
-	if (m_pImportTableSize == FALSE) {
-		AddLine(hDlg, "处理输入表时指定的内存不足或程序没输入表.");
-		return FALSE;
+		strcpy(tmpImportNode.DLLName, (char*)RVAToPtr(_pImageBase, pIID->Name));
+		tmpImportNode.FirstThunk = pIID->FirstThunk;
+
+		pThunk = (PIMAGE_THUNK_DATA)RVAToPtr(_pImageBase, pIID->FirstThunk);
+		while (pThunk->u1.AddressOfData)
+		{
+			memset(&tmpImpThunkNode, 0, sizeof(MutateImportThunkNode));
+			
+			if (!IMAGE_SNAP_BY_ORDINAL(pThunk->u1.Ordinal))
+			{	// STRING
+				strcpy(tmpImpThunkNode.FuncName, (char*)RVAToPtr(_pImageBase, pThunk->u1.AddressOfData + 2));
+			}
+			else
+			{	// ORDINAL
+				tmpImpThunkNode.Ordinal = pThunk->u1.Ordinal;
+			}
+			
+			tmpImportNode.vThunks.push_back(tmpImpThunkNode);
+
+			pThunk++;
+		}
+
+		tmpImportNode.nFunc = tmpImportNode.vThunks.size();
+
+		vMuateImport.push_back(tmpImportNode);
+
+		pIID++;
 	}
 
-	ClsImpTable();
-	AddLine(hDlg, "输入表加密完成.");
-#endif // __IMPORT_SWITCH__
 	
+	/*
+	FirstThunk|DLLName[32]|nFunc|FuncName[32]...
+	*/
+	/*  为变异输入表分配内存空间，并把输入表以变异后格式写入分配内存空间中  */
+	_pMutateImportInfo->nMutateImport = CalcMutateImpSize(vMuateImport);
+	_pMutateImportInfo->pMutateImport = new char[_pMutateImportInfo->nMutateImport];
+	memset(_pMutateImportInfo->pMutateImport, 0, _pMutateImportInfo->nMutateImport);
+	char* pData = (char*)(_pMutateImportInfo->pMutateImport);
+	for (std::vector<MutateImportNode>::iterator iterD = vMuateImport.begin(); iterD < vMuateImport.end(); iterD++)
+	{
+		*(DWORD*)pData = iterD->FirstThunk;
+		pData += sizeof(DWORD);
+		strcpy(pData, iterD->DLLName);
+		pData += 32 * sizeof(char);
+		*(DWORD*)pData = iterD->nFunc;
+		pData += sizeof(DWORD);
+		for (std::vector<MutateImportThunkNode>::iterator iterT = iterD->vThunks.begin(); iterT < iterD->vThunks.end(); iterT++)
+		{
+			memcpy(pData, iterT->FuncName, sizeof(*iterT));
+			pData += sizeof(*iterT);
+		}
+	}
+
+
 	return ERR_SUCCESS;
+}
+
+
+/*
+	Description:	计算变异输入表存放需要的大小
+*/
+unsigned long CalcMutateImpSize(std::vector<MutateImportNode> &_rvMuateImport)
+{
+	unsigned long ulMutateImpSize = 0;
+	ulMutateImpSize += \
+		2 * sizeof(DWORD) * _rvMuateImport.size() \
+		+ 32 * sizeof(char) * _rvMuateImport.size();
+	
+	for (std::vector<MutateImportNode>::iterator iter = _rvMuateImport.begin(); iter < _rvMuateImport.end(); iter++)
+	{
+		ulMutateImpSize += 32 * sizeof(char) * iter->vThunks.size();
+	}
+
+	return ulMutateImpSize;
 }

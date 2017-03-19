@@ -159,9 +159,6 @@
     <ClCompile Include="import.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="MemoryPool.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="packing.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
@@ -204,9 +201,6 @@
     <ClInclude Include="extradata.h" />
     <ClInclude Include="globalvalue.h" />
     <ClInclude Include="import.h" />
-    <ClInclude Include="MemoryPool.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="packing.h" />
     <ClInclude Include="pediy.h" />
     <ClInclude Include="pe_utilities.h" />
