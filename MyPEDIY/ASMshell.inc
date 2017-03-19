@@ -125,11 +125,13 @@ Proc_aP_depack_asm_safe PROTO
 
 comment /
 	Description:	
-	Parameters:	RuntimeImageBase		DWORD
-				OriginalImportRVA		DWORD
-				MutateImportRVA			DWORD
+	Parameters:	_RuntimeImageBase		DWORD
+				_MutateImportRVA		DWORD	RVA to ImageBase
+				_GPAAddr				DWORD
+				_GMHAddr				DWORD
+				_LLAAddr				DWORD
 /
-;Proc_UnmutateImport PROTO
+Proc_UnmutateImport	PROTO C , _RuntimeImageBase:DWORD, _MutateImportRVA:DWORD, _GPAAddr:DWORD, _GMHAddr:DWORD, _LLAAddr:DWORD
 
 
 comment /

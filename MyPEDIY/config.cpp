@@ -14,7 +14,7 @@ bool ISERASESHARE = false;
 bool ISSAVEDATA = false;
 
 /*  输入表变异开关 */
-bool ISMUTATEIMPORT = false;
+bool ISMUTATEIMPORT = true;
 
 /*  资源压缩开关  */
 bool ISPACKRES = false;

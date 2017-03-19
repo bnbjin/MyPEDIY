@@ -70,12 +70,13 @@ int ImployShell(void* _pImageBase, std::vector<DataToShellNode> &_rvDataToShell,
 
 
 	/*  把需要写入shell的数据写入*/
-	char* pShellData = RVAToPtr(_pImageBase, pLastSecHeader->VirtualAddress) + shellrawsize + ulShellDataGap;
+	char* pShellData = (char*)(*_ppShellSection) + shellrawsize + ulShellDataGap;
 	
 	/*  把变异输入表写入shell  */
+	std::vector<DataToShellNode>::iterator iter;
 	if (ISMUTATEIMPORT)
 	{
-		std::vector<DataToShellNode>::iterator iter = _rvDataToShell.begin();
+		iter = _rvDataToShell.begin();
 		while (ShellDataType::MImp != iter->DataType)
 		{
 			iter++;
@@ -83,9 +84,8 @@ int ImployShell(void* _pImageBase, std::vector<DataToShellNode> &_rvDataToShell,
 		if (ShellDataType::MImp == iter->DataType)
 		{
 			memcpy(pShellData, iter->pData, iter->nData);
-			pShellData += iter->nData + ulShellDataGap;
 		}
-		pLuanchData->MutateImpTableAddr = pShellData - (char*)_pImageBase - pLastSecHeader->VirtualAddress;
+		pLuanchData->MutateImpTableAddr = pLastSecHeader->VirtualAddress + shellrawsize + ulShellDataGap;
 	}
 
 	return	ERR_SUCCESS;

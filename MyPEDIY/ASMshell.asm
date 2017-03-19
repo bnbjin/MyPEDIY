@@ -428,11 +428,13 @@ Label_Luanch_Start	LABEL	DWORD
 		call	Proc_InitOrigianlImport
 		add		esp, 14h
 	.ELSE
-		comment /
-			push Label_Luanch_Start
-			push edx
-			Proc_UnmutateImport
-		/
+		push	DWORD PTR [edx + (LuanchData.LLAAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.GMHAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.GPAAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.MutateImpTableAddr - Label_Luanch_Start)]
+		push	DWORD PTR [edx + (LuanchData.PresentImageBase - Label_Luanch_Start)]
+		call	Proc_UnmutateImport
+		add		esp, 14h
 	.ENDIF
 	; *  修正重定位数据  *
 	; *  anti  dump  *
@@ -457,35 +459,101 @@ LuanchData	LUANCH_DATA	<>
 Lable_Luanch_Data_End	LABEL 	DWORD
 
 
+ORDINAL_FLAG_DWORD	EQU	80000000h	
 comment /
 	Description:	
-	Parameters:	RuntimeImageBase		DWORD
-				OriginalImportRVA		DWORD	RVA to Imagebase
-				MutateImportRVA			DWORD	RVA to ImageBase
+	Parameters:	_RuntimeImageBase		DWORD
+				_MutateImportRVA		DWORD	RVA to ImageBase
+				_GPAAddr				DWORD
+				_GMHAddr				DWORD
+				_LLAAddr				DWORD
 /
-comment /
-Proc_UnmutateImport	PROC
-	 
-	pushad	;esp -= 0x20
+Proc_UnmutateImport	PROC C PRIVATE \
+	USES ebx ecx edx esi edi \
+	, _RuntimeImageBase:DWORD, _MutateImportRVA:DWORD, _GPAAddr:DWORD, _GMHAddr:DWORD, _LLAAddr:DWORD
 	
-	; ebp = RuntimeLuanchBase
-	; esi = OriginalImportRVA
-	; edi = MutateImportRVA
-	mov		ebp, dword ptr ss:[esp + 24h]
-	mov		esi, dword ptr ss:[esp + 28h]
-	mov		edi, dword ptr ss:[esp + 2Ch]
+	
+	mov		edx, _RuntimeImageBase
+	mov		esi, _MutateImportRVA
+	mov		edi, (MUTATE_IMPORT PTR [edx + esi]).FirstThunk
+	
+	.WHILE		edi != 0
+		
+		; eax = GetModuleHandleA(MutateImport.DLLName)
+		; if (eax == 0)	LoadLibraryA(MutateImport.DLLName)
+		push 	edx
+		lea 	eax, (MUTATE_IMPORT PTR [edx + esi]).DLLName
+		push 	eax
+		call 	_GMHAddr	
+		pop 	edx
+		.IF 	eax == 0
+		push 	edx
+		lea 	eax, (MUTATE_IMPORT PTR [edx + esi]).DLLName
+		push 	eax
+		call 	_LLAAddr	
+		pop 	edx
+		.ENDIF
+		
+		; 获取所有函数的地址
+		; ebx = hDLL
+		; ecx = MUTATE_IMPORT.nFunc
+		; esi = MUTATE_IMPORT.MUTATE_IMPORT_THUNK
+		; while(ecx != 0)
+		; {
+		; 		if (esi is ordinal)
+		;		{
+		;			eax = ordinal and 0000ffffh
+		;		}
+		;		else
+		;		{
+		;			eax = szFuncName
+		;		}
+		;		GetProcAddress(hDLL, eax)
+		;		OriginalImport.IAT[n] = eax 
+		;
+		;		esi += 32;	移动到下一个THUNK
+		;		ecx--
+		; }
+		mov 	ebx, eax
+		mov		ecx, (MUTATE_IMPORT PTR [edx + esi]).nFunc
+		add		esi, 28h
+		.WHILE  ecx != 0
+			mov 	eax, DWORD PTR [edx + esi]
+			and 	eax, ORDINAL_FLAG_DWORD
+			.IF 	eax != 0
+				; ORDINAL
+				mov		eax, DWORD PTR [edx + esi]
+				and 	eax, 0000ffffh
+			.ELSE
+				; STRING 
+				lea 	eax, DWORD PTR [edx + esi]
+			.ENDIF 
 
-	.WHILE	eax != 0
-	
+			push 	ecx
+			push 	edx
+			push 	ebx			
+			push 	eax
+			push 	ebx
+			call 	_GPAAddr
+			pop 	ebx
+			pop 	edx
+			pop 	ecx
+			mov		DWORD PTR [edx + edi], eax
+			
+			
+			add 	esi, 20h
+			add 	edi, 4h
+			dec 	ecx
+		.ENDW
+		
+		mov		edi, (MUTATE_IMPORT PTR [edx + esi]).FirstThunk
 	.ENDW	
 	
-	popad
 	ret 
 	
 Proc_UnmutateImport ENDP
-/
 
-ORDINAL_FLAG_DWORD	EQU	80000000h	
+
 comment /
 	Description:	初始化原输入表
 					C convention
@@ -496,7 +564,7 @@ comment /
 					_LLAAddr			DWORD
 /
 Proc_InitOrigianlImport PROC C PRIVATE \
-	USES ebx edx esi edi \
+	USES ebx ecx edx esi edi \
 	, _RuntimeImageBase:DWORD, _OriginalImportRVA:DWORD, _GPAAddr:DWORD, _GMHAddr:DWORD, _LLAAddr:DWORD
 	
 	mov 	edx, _RuntimeImageBase
@@ -505,43 +573,49 @@ Proc_InitOrigianlImport PROC C PRIVATE \
 	mov 	eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).FirstThunk
 	.WHILE  eax != 0
 		mov 	edi, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).FirstThunk
-		mov 	eax, DWORD PTR [edx + edi]
-		.WHILE	eax != 0		
-			; eax = GetModuleHandleA(Import.DLLName)
-			; if (eax == 0)	LoadLibraryA(Import.DLLName)
-			push	edx 
+		
+		; eax = GetModuleHandleA(Import.DLLName)
+		; if (eax == 0)	LoadLibraryA(Import.DLLName)
+		; ebx = hDLL
+		push	edx 
+		mov 	eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).DLLName
+		add 	eax, edx
+		push 	eax
+		call    DWORD PTR [_GMHAddr]
+		pop		edx
+		.IF eax == 0
+			push 	edx
 			mov 	eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).DLLName
-			add 	eax, edx
+			add 	eax, edx 
 			push 	eax
-			call    DWORD PTR [_GMHAddr]
+			call 	DWORD PTR [_LLAAddr]
 			pop		edx
-			.IF eax == 0
-				push 	edx
-				mov 	eax, (MY_IMAGE_IMPORT_DESCRIPTOR PTR [edx + esi]).DLLName
-				add 	eax, edx 
-				push 	eax
-				call 	DWORD PTR [_LLAAddr]
-				pop		edx
-			.ENDIF
-			
-			push	edx
-			mov 	ebx, DWORD PTR [edx + edi]
+		.ENDIF
+		mov		ebx, eax 
+		
+		mov 	eax, DWORD PTR [edx + edi]
+		.WHILE	eax != 0
 			push 	ebx
-			and		ebx, ORDINAL_FLAG_DWORD
-			.IF		ebx == 0
+			push	edx
+			mov 	ecx, DWORD PTR [edx + edi]
+			push 	ecx
+			and		ecx, ORDINAL_FLAG_DWORD
+			.IF		ecx == 0
 			;	STRING
-				pop 	ebx
+				pop 	ecx
 				; GetProcAddress(eax, Import.FirstThunk[n])
-				lea		ebx, DWORD PTR [edx + ebx + TYPE WORD]	;越过Hint
+				lea		ecx, DWORD PTR [edx + ecx + TYPE WORD]	;越过Hint
 			.ELSE
 			;	ORDINAL
-				pop		ebx
-				and		ebx, 0000ffffh
+				pop		ecx
+				and		ecx, 0000ffffh
 			.ENDIF
-			push 	ebx
-			push	eax
+			push 	ecx
+			push	ebx 
 			call	DWORD PTR [_GPAAddr]
 			pop		edx
+			pop 	ebx
+			
 			; Import.FirstThunk[n] = eax
 			mov		DWORD PTR [edx + edi], eax
 			
@@ -556,6 +630,7 @@ Proc_InitOrigianlImport PROC C PRIVATE \
 	ret
 	
 Proc_InitOrigianlImport ENDP
+
  
 
 Label_Luanch_End	LABEL 	DWORD
