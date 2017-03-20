@@ -23,7 +23,7 @@ int MutateImport(void *_pImageBase, PMutateImportInfo _pMutateImportInfo)
 	{
 		memset(&tmpImportNode, 0, sizeof(MutateImportNode));
 
-		strcpy(tmpImportNode.DLLName, (char*)RVAToPtr(_pImageBase, pIID->Name));
+		strcpy_s(tmpImportNode.DLLName, (char*)RVAToPtr(_pImageBase, pIID->Name));
 		tmpImportNode.FirstThunk = pIID->FirstThunk;
 
 		pThunk = (PIMAGE_THUNK_DATA)RVAToPtr(_pImageBase, pIID->FirstThunk);
@@ -33,7 +33,7 @@ int MutateImport(void *_pImageBase, PMutateImportInfo _pMutateImportInfo)
 			
 			if (!IMAGE_SNAP_BY_ORDINAL(pThunk->u1.Ordinal))
 			{	// STRING
-				strcpy(tmpImpThunkNode.FuncName, (char*)RVAToPtr(_pImageBase, pThunk->u1.AddressOfData + 2));
+				strcpy_s(tmpImpThunkNode.FuncName, (char*)RVAToPtr(_pImageBase, pThunk->u1.AddressOfData + 2));
 			}
 			else
 			{	// ORDINAL
@@ -65,7 +65,7 @@ int MutateImport(void *_pImageBase, PMutateImportInfo _pMutateImportInfo)
 	{
 		*(DWORD*)pData = iterD->FirstThunk;
 		pData += sizeof(DWORD);
-		strcpy(pData, iterD->DLLName);
+		strcpy_s(pData, 32, iterD->DLLName);
 		pData += 32 * sizeof(char);
 		*(DWORD*)pData = iterD->nFunc;
 		pData += sizeof(DWORD);

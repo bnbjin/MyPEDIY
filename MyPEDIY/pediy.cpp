@@ -264,6 +264,7 @@ int ReadFileToHeap(TCHAR *szFilePath, HANDLE *_hfile, void **_pimagebase)
 	DWORD	RWbytes;
 	unsigned long imagesize_fix;
 	void* pimagebase;
+	BOOL bRetCode;
 
 	hFile = CreateFile(
 		szFilePath,
@@ -284,13 +285,21 @@ int ReadFileToHeap(TCHAR *szFilePath, HANDLE *_hfile, void **_pimagebase)
 	/*  读取文件头获取文件信息  */
 
 	// 读DOS头 
-	ReadFile(hFile, &dosheader, sizeof(dosheader), &RWbytes, NULL);
+	bRetCode = ReadFile(hFile, &dosheader, sizeof(dosheader), &RWbytes, NULL);
+	if (FALSE == bRetCode)
+	{
+		return ERR_INVALIDFILE;
+	}
 
 	// 定位到PE头起始处e_lfanew
 	SetFilePointer(hFile, dosheader.e_lfanew, NULL, FILE_BEGIN);
 
 	// 读出PE头
-	ReadFile(hFile, &ntheader, sizeof(ntheader), &RWbytes, NULL);
+	bRetCode = ReadFile(hFile, &ntheader, sizeof(ntheader), &RWbytes, NULL);
+	if (FALSE == bRetCode)
+	{
+		return ERR_INVALIDFILE;
+	}
 
 	// 修正可能存在的映象大小没有对齐的情况
 	imagesize_fix = AlignSize(ntheader.OptionalHeader.SizeOfImage, ntheader.OptionalHeader.SectionAlignment);
@@ -308,7 +317,11 @@ int ReadFileToHeap(TCHAR *szFilePath, HANDLE *_hfile, void **_pimagebase)
 
 	// 首先定位并读PE文件头到内存中
 	SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-	ReadFile(hFile, pimagebase, ntheader.OptionalHeader.SizeOfHeaders, &RWbytes, NULL);
+	bRetCode = ReadFile(hFile, pimagebase, ntheader.OptionalHeader.SizeOfHeaders, &RWbytes, NULL);
+	if (FALSE == bRetCode)
+	{
+		return ERR_INVALIDFILE;
+	}
 
 	// 循环依次读出区块数据到映象中的虚拟地址处
 	psecheader = getSecHeader(pimagebase);
@@ -320,11 +333,15 @@ int ReadFileToHeap(TCHAR *szFilePath, HANDLE *_hfile, void **_pimagebase)
 		SetFilePointer(hFile, psecheader->PointerToRawData, NULL, FILE_BEGIN);
 
 		// 读SECTION数据到映象中
-		ReadFile(
+		bRetCode = ReadFile(
 			hFile, 
 			&((char*)pimagebase)[psecheader->VirtualAddress], 
 			psecheader->SizeOfRawData, &RWbytes, 
 			NULL);
+		if (FALSE == bRetCode)
+		{
+			return ERR_INVALIDFILE;
+		}
 	}
 
 	return ERR_SUCCESS;

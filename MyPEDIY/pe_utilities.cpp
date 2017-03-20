@@ -191,8 +191,8 @@ unsigned int CreateNewSection(void* _pImageBase, const unsigned long _secsize, v
 	/*  填写新区块信息  */
 	memset(pNewSecHeader, 0, sizeof(IMAGE_SECTION_HEADER));
 	/* Name, VirtualAddress, VirtualSize, RawAddress, RawSize, Characteristics */
-	char secname[8] = { ".shell" };
-	memcpy(pNewSecHeader->Name, ".shell", 8);
+	const char newsecname[8] = { ".shell" };
+	memcpy(pNewSecHeader->Name, newsecname, 8);
 	pNewSecHeader->VirtualAddress = pLastSecHeader->VirtualAddress + AlignSize(pLastSecHeader->Misc.VirtualSize, pNTHeader->OptionalHeader.SectionAlignment);
 	pNewSecHeader->Misc.VirtualSize = AlignSize(_secsize, pNTHeader->OptionalHeader.SectionAlignment);
 	pNewSecHeader->PointerToRawData = pLastSecHeader->PointerToRawData + AlignSize(pLastSecHeader->SizeOfRawData, pNTHeader->OptionalHeader.FileAlignment);

@@ -32,7 +32,11 @@ int ReadExtraData(HANDLE _hFile, void* _imagebase, void **_pExtraData, unsigned 
 		
 		memset(pExtraData, 0, ulExtraDataSize);
 
-		ReadFile(_hFile, pExtraData, ulExtraDataSize, &BytesRW, NULL);
+		BOOL RetCode = ReadFile(_hFile, pExtraData, ulExtraDataSize, &BytesRW, NULL);
+		if (FALSE == RetCode)
+		{
+			return ERR_INVALIDFILE;
+		}
 		// log : 额外数据读取完毕.
 	}
 	else

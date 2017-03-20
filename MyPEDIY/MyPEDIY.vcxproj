@@ -184,13 +184,10 @@
     <ClCompile Include="utilities.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="winmain.cpp">
+    <ClCompile Include="entry.cpp">
       <RemoveUnreferencedCodeData Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</RemoveUnreferencedCodeData>
     </ClCompile>
-    <ClCompile Include="winmain.h">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DeploymentContent>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-    </ClCompile>
+    <ClInclude Include="entry.h" />
     <ClCompile Include="gloabalvalue.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
